@@ -61,16 +61,15 @@ def get_embeddings(model, tokenizer, seqs, max_residues=4000, max_seq_len=1000, 
             try:
                 with torch.no_grad():
                     out = model(input_ids, attention_mask=attention_mask)
+                for idx, sid in enumerate(ids):
+                    emb = out.last_hidden_state[idx, :lens[idx]].detach().cpu().numpy()
+                    results[sid] = emb
+                del out
             except RuntimeError as e:
-                logging.error(f"RuntimeError: {e}")
-                continue
-
-            for i, sid in enumerate(ids):
-                emb = out.last_hidden_state[i, :lens[i]].detach().cpu().numpy()
-                results[sid] = emb
-
-            del input_ids, attention_mask, out
-            torch.cuda.empty_cache()
+                logging.error(f"RuntimeError on batch: {e}")
+            finally:
+                del input_ids, attention_mask
+                torch.cuda.empty_cache()
 
     logging.info(f"Embedded {len(results)} sequences in {time.time() - start:.1f}s")
     return results
