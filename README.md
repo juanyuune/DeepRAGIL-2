@@ -1,58 +1,79 @@
 # DeepRAGIL-2
 
-A retrieval-augmented protein language model framework for sensitive 
-and accurate prediction of IL-2-inducing peptides.
+A retrieval-augmented protein language model framework for sensitive and accurate prediction of IL-2-inducing peptides.
 
-## Publication
+**Authors:** Juan Peter Timothy Yuune, Van The Le, Yu-Yen Ou  
+**Affiliation:** Department of Computer Science and Engineering, Yuan Ze University, Taiwan  
+**Contact:** yien@saturn.yzu.edu.tw
 
-Yuune, J. P. T., Le, V. T. & Ou, Y.-Y. DeepRAGIL-2: a 
-retrieval-augmented protein language model framework for sensitive 
-and accurate prediction of IL-2-inducing peptides. 
-*Scientific Reports* (2025). [Link will be added upon acceptance]
+---
 
-## Performance on Independent Test Set
+## Overview
 
-| Metric      | Value  |
-|-------------|--------|
+DeepRAGIL-2 combines three components for IL-2 induction prediction:
+
+- **ESM-2** embeddings (esm2_t33_650M_UR50D)
+- **Dual-window MCNN** with kernel sizes 8 and 16
+- **RAG module** with equal fusion weighting (query = 0.50, RAG = 0.50)
+
+---
+
+## Performance
+
+| Metric | Value |
+|--------|-------|
 | Sensitivity | 0.7501 |
 | Specificity | 0.9708 |
-| Accuracy    | 0.9281 |
-| MCC         | 0.7605 |
-| AUC         | 0.8654 |
+| Accuracy | 0.9281 |
+| MCC | 0.7605 |
+| AUC | 0.8654 |
+
+---
 
 ## Requirements
 
-- Python 3.8 or higher
-- PyTorch 2.0 or higher
-- CUDA 11.7 or higher (recommended for GPU)
-
-## Installation
-
-```bash
-git clone https://github.com/[yourusername]/DeepRAGIL-2
-cd DeepRAGIL-2
+```
 pip install -r requirements.txt
 ```
 
-## Quick Start — Predict on New Sequences
-
-```bash
-python predict/predict.py --input data/sample_sequences.fasta --output results.csv
-```
+---
 
 ## Dataset
 
-All sequences were sourced from the Immune Epitope Database (IEDB).
-Download instructions are in `data/README_data.md`.
-A small sample file `data/sample_sequences.fasta` is included 
-for testing.
+Sequences were sourced from IEDB (https://www.iedb.org). The dataset contains 3,825 non-redundant sequences (738 IL-2-inducing, 3,087 non-inducing) split 80:20 into training and independent test sets.
+
+---
+
+## Usage
+
+**Step 1 — Generate ESM-2 embeddings**
+```bash
+python CODE/get_esm2.py -in data/fasta/ -out data/embeddings/esm2/
+```
+
+**Step 2 — Build RAG database**
+```bash
+python CODE/get_RAGemb.py -in data/rag_fasta/ -out data/embeddings/rag/
+```
+
+**Step 3 — Prepare dataset**
+```bash
+python CODE/get_datasets.py --embeddings data/embeddings/esm2/ --labels data/dataset_ids.csv --output data/processed/
+```
+
+**Step 4 — Train and evaluate**
+```bash
+python CODE/MCNN.py --data data/processed/ --rag_database data/embeddings/rag/ --rag_weight 0.50 --window_sizes 8 16 --filters 256 --hidden 500 --output results/
+```
+
+---
 
 ## Pre-trained Model Weights
 
-The best-performing PKL model file is available for download at:
-[Google Drive link — add before submission]
+Available at: [(https://drive.google.com/file/d/1c0X9uXocyUp2hq-rvJP8Wqx9EFJEwJvU/view?usp=sharing)]
 
-Best model: ESM2 + RAG + MCNN windows 8,16
-AUC = 0.8654
+---
 
-## Repository Structure
+## Citation
+
+Manuscript in preparation (2026). Citation will be updated upon acceptance.
