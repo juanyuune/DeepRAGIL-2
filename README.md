@@ -46,50 +46,33 @@ The RAG database uses a separate set of 3,092 sequences (IDs in `data/rag_databa
 
 ## How to run
 
-The pipeline has 4 steps. You need to run them in order.
+Run the steps in order. Each step depends on the output of the previous one.
 
-**Step 1 — Get ESM-2 embeddings**
+**Step 1 — Generate ESM-2 embeddings**
 
 ```bash
 python CODE/get_esm2.py -in data/fasta/train/ -out data/embeddings/train/
-python CODE/get_esm2.py -in data/fasta/test/  -out data/embeddings/test/
+python CODE/get_esm2.py -in data/fasta/test/ -out data/embeddings/test/
 ```
 
-**Step 2 — Build RAG database**
-
-Only need to do this once.
+**Step 2 — Build the RAG database (only once)**
 
 ```bash
 python CODE/get_RAGemb.py --model esm2 --fasta data/rag_database.fasta --output data/rag/
 ```
 
-**Step 3 — Fuse embeddings with RAG**
+**Step 3 — Fuse with RAG**
 
 ```bash
-python CODE/rag_retriever.py \
-  --query data/embeddings/train/ \
-  --database data/rag/rag_db_esm2.npy \
-  --output data/fused/fused_train.npy \
-  --query_weight 0.50 --maxseq 35 --emb_dim 1280 --metric cosine
+python CODE/rag_retriever.py --query data/embeddings/train/ --database data/rag/rag_db_esm2.npy --output data/fused/fused_train.npy --query_weight 0.50 --maxseq 35 --emb_dim 1280 --metric cosine
 
-python CODE/rag_retriever.py \
-  --query data/embeddings/test/ \
-  --database data/rag/rag_db_esm2.npy \
-  --output data/fused/fused_test.npy \
-  --query_weight 0.50 --maxseq 35 --emb_dim 1280 --metric cosine
+python CODE/rag_retriever.py --query data/embeddings/test/ --database data/rag/rag_db_esm2.npy --output data/fused/fused_test.npy --query_weight 0.50 --maxseq 35 --emb_dim 1280 --metric cosine
 ```
 
 **Step 4 — Train and evaluate**
 
 ```bash
-python CODE/MCNN.py \
-  --train_data data/fused/fused_train.npy \
-  --test_data data/fused/fused_test.npy \
-  --train_labels data/labels_train.npy \
-  --test_labels data/labels_test.npy \
-  --output results/ \
-  --window_sizes 8 16 --filters 256 --hidden 500 \
-  --epochs 20 --batch_size 512 --mode independent
+python CODE/MCNN.py --train_data data/fused/fused_train.npy --test_data data/fused/fused_test.npy --train_labels data/labels_train.npy --test_labels data/labels_test.npy --output results/ --window_sizes 8 16 --filters 256 --hidden 500 --epochs 20 --batch_size 512 --mode independent
 ```
 
 ---
@@ -115,7 +98,7 @@ data/
 
 ## Pre-trained weights
 
-Model weights (.h5) available here: [Google Drive — link to be added]
+Model weights (.h5) available here: [Google Drive — https://drive.google.com/file/d/1c0X9uXocyUp2hq-rvJP8Wqx9EFJEwJvU/view?usp=sharing]
 
 ---
 
