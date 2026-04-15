@@ -3,8 +3,6 @@ import gc
 import pickle
 import logging
 import argparse
-
-import numpy as np
 import torch
 import esm
 
@@ -35,23 +33,23 @@ def read_fasta(fasta_path):
 
 
 def get_embeddings(model, tokenizer, seqs):
-    batch_data = [(sid, seq) for sid, seq in seqs]
-    _, _, batch_tokens = tokenizer(batch_data)
+    _, _, batch_tokens = tokenizer(seqs)
     batch_tokens = batch_tokens.to(device)
-
-    with torch.no_grad():
-        out = model(batch_tokens, repr_layers=[33], return_contacts=False)
-        token_reps = out["representations"][33]
-
     results = {}
-    for i, (sid, seq) in enumerate(seqs):
-        emb = token_reps[i, 1:len(seq)+1].detach().cpu().numpy()
-        results[sid] = emb
-
-    del batch_tokens, token_reps, out
-    torch.cuda.empty_cache()
-    gc.collect()
-
+    try:
+        with torch.no_grad():
+            out = model(batch_tokens, repr_layers=[33], return_contacts=False)
+            token_reps = out["representations"][33]
+        for i, (sid, seq) in enumerate(seqs):
+            emb = token_reps[i, 1:len(seq)+1].detach().cpu().numpy()
+            results[sid] = emb
+        del token_reps, out
+    except RuntimeError as e:
+        logging.error(f"RuntimeError during embedding: {e}")
+    finally:
+        del batch_tokens
+        torch.cuda.empty_cache()
+        gc.collect()
     return results
 
 
@@ -88,8 +86,7 @@ if __name__ == "__main__":
     fasta_files = [f for f in os.listdir(args.path_input) if f.endswith(".fasta")]
     for i, fname in enumerate(fasta_files, 1):
         in_path  = os.path.join(args.path_input, fname)
-        out_path = os.path.join(args.path_output,
-                                os.path.splitext(fname)[0] + ".esm2")
+        out_path = os.path.join(args.path_output, os.path.splitext(fname)[0] + ".esm2")
         logging.info(f"[{i}/{len(fasta_files)}] {fname}")
         process_fasta(in_path, out_path, model, tokenizer)
         gc.collect()
