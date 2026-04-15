@@ -3,16 +3,13 @@ import gc
 import pickle
 import logging
 import argparse
+import numpy as np
 import torch
 import esm
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 
 def load_esm2():
     logging.info("Loading ESM-2 model...")
@@ -20,7 +17,6 @@ def load_esm2():
     model = model.to(device).eval()
     tokenizer = alphabet.get_batch_converter()
     return model, tokenizer
-
 
 def read_fasta(fasta_path):
     seq = ''
@@ -31,9 +27,9 @@ def read_fasta(fasta_path):
     seq_id = os.path.splitext(os.path.basename(fasta_path))[0]
     return [(seq_id, seq)]
 
-
 def get_embeddings(model, tokenizer, seqs):
-    _, _, batch_tokens = tokenizer(seqs)
+    batch_data = [(sid, seq) for sid, seq in seqs]
+    _, _, batch_tokens = tokenizer(batch_data)
     batch_tokens = batch_tokens.to(device)
     results = {}
     try:
@@ -52,11 +48,9 @@ def get_embeddings(model, tokenizer, seqs):
         gc.collect()
     return results
 
-
 def save_embeddings(data, output_path):
     with open(output_path, 'wb') as f:
         pickle.dump(data, f)
-
 
 def process_fasta(fasta_path, output_path, model, tokenizer):
     try:
@@ -69,7 +63,6 @@ def process_fasta(fasta_path, output_path, model, tokenizer):
         logging.error(f"Failed on {fasta_path}: {e}")
         with open('NO_OK.txt', 'a') as f:
             f.write(f"{fasta_path} > {output_path}\n")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -92,3 +85,4 @@ if __name__ == "__main__":
         gc.collect()
 
     logging.info(f"Finished. {len(fasta_files)} files processed.")
+    
