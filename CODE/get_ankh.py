@@ -3,7 +3,6 @@ import gc
 import logging
 import argparse
 import pickle
-import numpy as np
 import torch
 import ankh
 
@@ -48,19 +47,22 @@ def get_embeddings(model, tokenizer, seqs):
         input_ids      = outputs["input_ids"].to(device)
         attention_mask = outputs["attention_mask"].to(device)
 
-        with torch.no_grad():
-            out = model(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                output_hidden_states=True
-            )
-
-        emb = out.last_hidden_state[0, 1:len(seq)+1].detach().cpu().numpy()
-        results[sid] = emb
-
-        del input_ids, attention_mask, out
-        torch.cuda.empty_cache()
-        gc.collect()
+        try:
+            with torch.no_grad():
+                out = model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    output_hidden_states=True
+                )
+            emb = out.last_hidden_state[0, 1:len(seq)+1].detach().cpu().numpy()
+            results[sid] = emb
+            del out
+        except RuntimeError as e:
+            logging.error(f"RuntimeError on {sid}: {e}")
+        finally:
+            del input_ids, attention_mask
+            torch.cuda.empty_cache()
+            gc.collect()
 
     return results
 
