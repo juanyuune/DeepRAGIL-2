@@ -1,18 +1,14 @@
 import os
 import gc
+import pickle
 import logging
 import argparse
-import pickle
 import torch
 import ankh
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 
 def load_ankh(model_size="large"):
     logging.info(f"Loading Ankh-{model_size} model...")
@@ -23,7 +19,6 @@ def load_ankh(model_size="large"):
     model = model.to(device).eval()
     return model, tokenizer
 
-
 def read_fasta(fasta_path):
     seq = ''
     with open(fasta_path, 'r') as f:
@@ -32,7 +27,6 @@ def read_fasta(fasta_path):
                 seq += line.strip()
     seq_id = os.path.splitext(os.path.basename(fasta_path))[0]
     return [(seq_id, seq)]
-
 
 def get_embeddings(model, tokenizer, seqs):
     results = {}
@@ -46,31 +40,24 @@ def get_embeddings(model, tokenizer, seqs):
         )
         input_ids      = outputs["input_ids"].to(device)
         attention_mask = outputs["attention_mask"].to(device)
-
         try:
             with torch.no_grad():
-                out = model(
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                    output_hidden_states=True
-                )
+                out = model(input_ids=input_ids, attention_mask=attention_mask, output_hidden_states=True)
+            # strip BOS and EOS tokens
             emb = out.last_hidden_state[0, 1:len(seq)+1].detach().cpu().numpy()
             results[sid] = emb
             del out
         except RuntimeError as e:
-            logging.error(f"RuntimeError on {sid}: {e}")
+            logging.error(f"RuntimeError during embedding: {e}")
         finally:
             del input_ids, attention_mask
             torch.cuda.empty_cache()
             gc.collect()
-
     return results
-
 
 def save_embeddings(data, output_path):
     with open(output_path, 'wb') as f:
         pickle.dump(data, f)
-
 
 def process_fasta(fasta_path, output_path, model, tokenizer):
     try:
@@ -84,13 +71,11 @@ def process_fasta(fasta_path, output_path, model, tokenizer):
         with open('NO_OK.txt', 'a') as f:
             f.write(f"{fasta_path} > {output_path}\n")
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-in",    "--path_input",  type=str, required=True)
     parser.add_argument("-out",   "--path_output", type=str, required=True)
-    parser.add_argument("-model", "--model_size",  type=str, default="large",
-                        choices=["base", "large"])
+    parser.add_argument("-model", "--model_size",  type=str, default="large", choices=["base", "large"])
     args = parser.parse_args()
 
     if not os.path.exists(args.path_input):
@@ -108,3 +93,4 @@ if __name__ == "__main__":
         gc.collect()
 
     logging.info(f"Finished. {len(fasta_files)} files processed.")
+    
