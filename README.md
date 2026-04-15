@@ -101,7 +101,3 @@ data/
 Model weights (.h5) available here: [Google Drive — https://drive.google.com/file/d/1c0X9uXocyUp2hq-rvJP8Wqx9EFJEwJvU/view?usp=sharing]
 
 ---
-
-## Citation
-
-Paper under review. Will update once published.
